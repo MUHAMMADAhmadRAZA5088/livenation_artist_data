@@ -189,15 +189,15 @@ soup = request("https://www.livenation.com/artist-sitemap")
 soup = soup["soup"]
 links = soup.select('div.css-p1b7dg > a')
 for link in links:
-    
-    soup = request("https://www.livenation.com"+link["href"])
+    print(link["href"])
+    soup = request("https://www.livenation.com" + link["href"])
     current_url = soup["url"].replace("http://api.scrape.do?token=4452cbd7342d4a36971719b194897d692073b3c06af&url=","")
     soup = soup["soup"]
     try:
         pagination = int(soup.select_one('a[aria-label="Last Page"]').text)
     except:
         pagination = 2
-
+    import pdb;pdb.set_trace()
     for page in range(1,pagination+1):
         print(current_url)
         print(f"pagination {page}")
@@ -208,14 +208,18 @@ for link in links:
        
         soup = soup["soup"]   
         artist_link = soup.select('.chakra-link.css-1okgivo')
+        print(len(artist_link))
+    
         for link in artist_link:
             soup = request('https://www.livenation.com' + link["href"])
             soup = soup["soup"]
             target_link = soup.select('ul.css-p47pw5 a.chakra-linkbox__overlay.css-1q2nroc')
             
             if target_link:
+                print(len(target_link))
                 for link in target_link:
                     link = link["href"]
+                    
                     if "ticketmaster.com" in link and "ticketmaster.com." not in link:
                         data = filter_url_ticketmaster(link)
                     elif "concerts.livenation.com" in link:

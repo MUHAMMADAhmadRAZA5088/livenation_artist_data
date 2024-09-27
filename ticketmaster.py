@@ -9,6 +9,23 @@ from lxml import html
 from bs4 import BeautifulSoup
 from datetime import datetime
 
+def convert_json(fine_name, link):
+    try:
+        with open(f'{fine_name}', 'r') as file:
+            data_list = json.load(file)
+        
+        data_list.append(link)
+        # JSON string se read karna
+        with open(f'{fine_name}', 'w') as file:
+            json.dump(data_list, file)
+    except:
+        with open('/home/ubuntu/livenation_ticketmaster/'+f'{fine_name}', 'r') as file:
+            data_list = json.load(file)
+        data_list.append(link)
+        # JSON string se read karna
+        with open('/home/ubuntu/livenation_ticketmaster/'+f'{fine_name}', 'w') as file:
+            json.dump(data_list, file)
+            
 # csv convert data
 def csv_convert(soup, type_event , data , target_url):
     new_data = {
@@ -61,45 +78,56 @@ def make_request(url, headers):
 livenation_link = []
 bad_link = []
 ticketmaster_link = []
-all_url = []
+ticketmaster_all_url = []
 
+# ticketmaster ca
 # ticketmaster ca
 def filter_url_ticketmaster_ca(target_url):
     retries = 3
+
     for i in range(retries):
         try:
             targetUrl = urllib.parse.quote(target_url)
-            url = f"http://api.scrape.do?token=4452cbd7342d4a36971719b194897d692073b3c06af&url={targetUrl}&super=true&render=true&geoCode=us"
-
+            url = f"http://api.scrape.do?token=4452cbd7342d4a36971719b194897d692073b3c06af&super=true&render=true&geoCode=us&url={targetUrl}"
             response = requests.request("GET", url )
-            soup = BeautifulSoup(response.text, 'html.parser')
-            script_tag = soup.find('script', {'id': '__NEXT_DATA__'})
-            if script_tag != None:
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.text, 'html.parser')
+                script_tag = soup.find('script', {'id': '__NEXT_DATA__'})
+                if script_tag != None:
+                    try:
+                        data = json.loads(script_tag.text)
+                    except:
+                        data = {}
+                        
+                    try:
+                        if data["props"]["pageProps"]["edpData"]["context"]["discoveryEvent"]["edpPopup"]["linkText"] == "Face Value Ticket Exchange":
+                            try :
+                                generalinfo = data["props"]["pageProps"]["edpData"]["context"]["discoveryEvent"]["generalInfo"]["linkText"]
+                            except :
+                                generalinfo = "key error"
 
-                data = json.loads(script_tag.text)
-                try:
-                    if data["props"]["pageProps"]["edpData"]["context"]["discoveryEvent"]["edpPopup"]["linkText"] == "Face Value Ticket Exchange":
-                        print("ok")
-                        try :
-                            generalinfo = data["props"]["pageProps"]["edpData"]["context"]["discoveryEvent"]["generalInfo"]["linkText"]
-                        except :
-                            generalinfo = "key error"
-                        current_date = datetime.now().date()
-                        target_date = datetime.strptime(data["props"]["pageProps"]["edpData"]["context"]["discoveryEvent"]["epDate"], '%Y-%m-%d').date()
-                        if current_date < target_date and generalinfo != "":
-                            ticketmaster_link.append(target_url)
+                            current_date = datetime.now().date()
+                            target_date = datetime.strptime(data["props"]["pageProps"]["edpData"]["context"]["discoveryEvent"]["epDate"], '%Y-%m-%d').date()
 
-                            return "success_value"                   
-                    else:   
+                            if current_date < target_date and generalinfo != "":
+                                ticketmaster_link.append(target_url)
+                                convert_json('ticketmaster_web_link.json', target_url)
+                                return "success_value"
+                                    
+                    except:
                         return "No Value"
-                except:
-                    return "No link"
-            else:
-                bad_link.append(target_url)
-                return "bad status"
-
+                else: 
+                    return "no link"
+            else:       
+                if i < retries - 1:  # Don't retry on the last attempt
+                    print(f"attempt {i + 1}")
+                    time.sleep(10)
+                else:
+                    pass  
+        
         except requests.exceptions.ConnectionError:
             if i < retries - 1:  # Don't retry on the last attempt
+                print(f"attempt {i + 1}")
                 time.sleep(10)
             else:
                 pass
@@ -107,70 +135,93 @@ def filter_url_ticketmaster_ca(target_url):
 # ticketmaster
 def filter_url_ticketmaster(target_url):
     retries = 3
+
     for i in range(retries):
         try:
-            url = f"http://api.scrape.do/?token=4452cbd7342d4a36971719b194897d692073b3c06af&super=true&render=true&url={target_url}"
+            url = f"http://api.scrape.do/?token=4452cbd7342d4a36971719b194897d692073b3c06af&super=true&render=true&geoCode=us&url={target_url}"
             response = requests.request("GET", url )
+            if response.status_code == 200: 
+                soup = BeautifulSoup(response.text, 'html.parser')
+                script_tag = soup.find('script', {'id': '__NEXT_DATA__'})
             
-            soup = BeautifulSoup(response.text, 'html.parser')
-            script_tag = soup.find('script', {'id': '__NEXT_DATA__'})
-            if script_tag != None:
-                data = json.loads(script_tag.text)
-                try:
-                    if data["props"]["pageProps"]["edpData"]["context"]["discoveryEvent"]["edpPopup"]["linkText"] == "Face Value Ticket Exchange":
-                        print("ok")
-                        try :
-                            generalinfo = data["props"]["pageProps"]["edpData"]["context"]["discoveryEvent"]["generalInfo"]["linkText"]
-                        except :
-                            generalinfo = "key error"
-                        current_date = datetime.now().date()
-                        target_date = datetime.strptime(data["props"]["pageProps"]["edpData"]["context"]["discoveryEvent"]["epDate"], '%Y-%m-%d').date()
-                        if current_date < target_date and generalinfo != "":
-                            type_event = "coming event"
-                            ticketmaster_link.append(target_url)           
-                    else:
-                        return "No Value"
-                except:
+                if script_tag != None:
+                    try:
+                        data = json.loads(script_tag.text)
+                    except:
+                        data = {}
+                    try:
+                        if data["props"]["pageProps"]["edpData"]["context"]["discoveryEvent"]["edpPopup"]["linkText"] == "Face Value Ticket Exchange":
+                            try :
+                                generalinfo = data["props"]["pageProps"]["edpData"]["context"]["discoveryEvent"]["generalInfo"]["linkText"]
+                            except :
+                                generalinfo = "key error"
+
+                            current_date = datetime.now().date()
+                            target_date = datetime.strptime(data["props"]["pageProps"]["edpData"]["context"]["discoveryEvent"]["epDate"], '%Y-%m-%d').date()
+
+                            if current_date < target_date and generalinfo != "":
+                                type_event = "coming event"
+                                ticketmaster_link.append(target_url)
+                                convert_json('ticketmaster_web_link.json', target_url)
+
+                    except:
+                        return "No link"
+                else:
                     return "No link"
             else:
-                bad_link.append(target_url)
-                return "bad status"
+                if i < retries - 1:  # Don't retry on the last attempt
+                    print(f"attempt {i + 1}")
+                    time.sleep(10)
+                else:
+                    pass
+
+
         except requests.exceptions.ConnectionError:
             if i < retries - 1:  # Don't retry on the last attempt
+                print(f"attempt {i + 1}")
                 time.sleep(10)
             else:
                 pass
 
 #  livenation
-def filter_url_livenation(targetUrl, max_retries=5, delay=2):
+def filter_url_livenation(targetUrl, max_retries=5, delay=10):
+
     for attempt in range(max_retries):
         # target_Url = urllib.parse.quote(targetUrl)
         try:
-            url = f"https://api.scrape.do/?token=4452cbd7342d4a36971719b194897d692073b3c06af&url={targetUrl}&super=true&render=true"
+            url = f"https://api.scrape.do/?token=4452cbd7342d4a36971719b194897d692073b3c06af&super=true&render=true&geoCode=us&url={targetUrl}"
             response = requests.request("GET", url )
             if response.status_code == 200:
                 soup = BeautifulSoup(response.text, 'html.parser')
                 script_tag = soup.find('script', {'id': '__NEXT_DATA__'})
                 if script_tag != None:
-                    data = json.loads(script_tag.text)
+                    try:
+                        data = json.loads(script_tag.text)
+                    except:
+                        data = {}
                     try:
                         if data["props"]["pageProps"]["edpData"]["context"]["discoveryEvent"]["edpPopup"]["linkText"] == "Face Value Ticket Exchange":
-                            print("ok")
-                            livenation_link.append(targetUrl)
+                            livenation_link.append(target_url)
+                            convert_json('ticketmaster_livenation_web_link.json', target_url)
                             return data["props"]["pageProps"]["edpData"]["context"]["discoveryEvent"]["edpPopup"]["linkText"]
                     except:
-                        return "No Value"          
+                        return "No Value"           
                 else:
                     return "No link"
             else:
-                bad_link.append(targetUrl)
-                return "bad status"    
+                print(f"attempt {attempt + 1}")
+                if attempt < 5 :
+                    time.sleep(10)
+                else:
+                    pass
+                
         except requests.exceptions.ConnectionError:
-            print(f"server error {attempt + 1}")
+            print(f"attempt {attempt + 1}")
             if attempt < 5 :
-                time.sleep(delay)
+                time.sleep(10)
             else:
                 pass
+
 
 # Extract the seed value from the HTML response
 def extract_seed(response):
@@ -196,7 +247,7 @@ def get_lxml(token, url):
         return html.fromstring(response.content)
     
 def main():
-    token = load_env_variables()
+    token = "4452cbd7342d4a36971719b194897d692073b3c06af"
     concerts = [
         '/discover/concerts?classificationId=KnvZfZ7vAve',
         '/discover/concerts?classificationId=KnvZfZ7vAeA',
@@ -236,17 +287,16 @@ def main():
                     
                     if "ticketmaster.com" in link and "ticketmaster.com." not in link:
                         data = filter_url_ticketmaster(link)
-
                     elif "concerts.livenation.com" in link:
                         data = filter_url_livenation(link)
-
                     elif "ticketmaster.ca" in link:
                         data = filter_url_ticketmaster_ca(link)
                     else:
                         bad_link.append(link)
-                    all_url.append(link)
-                    print(data)
-                    print(f"bad_url = {len(bad_link)} and livenation_concert  = {len(livenation_link)} and ticketmaster = {len(ticketmaster_link)}")
+                        convert_json('bad2_link.json', link)
+                    ticketmaster_all_url.append(link)
+                    convert_json('ticketmaster_all_link.json', link)
+                    print(f"bad_url = {len(bad_link)} and livenation_concert  = {len(livenation_link)} and ticketmaster = {len(ticketmaster_link)} and all_website_link.json ={len(ticketmaster_all_url)}")
 
                 for i in range(1,50):
                     print(i)
@@ -266,6 +316,7 @@ def main():
                         if response.status_code != 400:               
                             for data in data["events"]:      
                                 link = data["url"]
+                                        
                                 if "ticketmaster.com" in link and "ticketmaster.com." not in link:
                                     data = filter_url_ticketmaster(link)
                                 elif "concerts.livenation.com" in link:
@@ -273,23 +324,18 @@ def main():
                                 elif "ticketmaster.ca" in link:
                                     data = filter_url_ticketmaster_ca(link)
                                 else:
-                                    bad_link.append(link) 
-                                all_url.append(link)
-                                print(data)
-                                print(f"bad_url = {len(bad_link)} and livenation_concert  = {len(livenation_link)} and ticketmaster = {len(ticketmaster_link)}")
+                                    bad_link.append(link)
+                                    convert_json('bad2_link.json', link)
+                                ticketmaster_all_url.append(link)
+                                convert_json('ticketmaster_all_link.json', link)
+                                print(f"bad_url = {len(bad_link)} and livenation_concert  = {len(livenation_link)} and ticketmaster = {len(ticketmaster_link)} and all_website_link.json ={len(ticketmaster_all_url)}")
 
                     except Exception as ex:
                         print(ex)
         except Exception as ex:
             print(ex)    
 
-    # Write the data to a JSON file
-    with open("ticket.json", 'w') as file:
-        json.dump(ticketmaster, file, indent=4)
-    with open("bad_data.json", 'w') as file:
-        json.dump(bad_data, file, indent=4)
-    with open("good_data.json", 'w') as file:
-        json.dump(good_data, file, indent=4)
+
 
 if __name__ == "__main__":
     main()
