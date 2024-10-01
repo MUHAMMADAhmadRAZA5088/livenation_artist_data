@@ -17,13 +17,16 @@ def convert_json(fine_name, link):
             data_list = json.load(file)
         
         data_list.append(link)
+        data_list = list(set(data_list))
         # JSON string se read karna
         with open(f'{fine_name}', 'w') as file:
             json.dump(data_list, file)
+
     except:
         with open('/home/ubuntu/livenation_ticketmaster/'+f'{fine_name}', 'r') as file:
             data_list = json.load(file)
         data_list.append(link)
+        data_list = list(set(data_list))
         # JSON string se read karna
         with open('/home/ubuntu/livenation_ticketmaster/'+f'{fine_name}', 'w') as file:
             json.dump(data_list, file)
@@ -112,7 +115,7 @@ def filter_url_ticketmaster(target_url):
                                 convert_json('ticketmaster_link.json', target_url)
 
                     except:
-                        return "No link"
+                        return "No value"
                 else:
                     return "No link"
             else:
@@ -189,6 +192,7 @@ soup = request("https://www.livenation.com/artist-sitemap")
 soup = soup["soup"]
 links = soup.select('div.css-p1b7dg > a')
 for link in links:
+    current_page = link["href"]
     print(link["href"])
     soup = request("https://www.livenation.com" + link["href"])
     current_url = soup["url"].replace("http://api.scrape.do?token=4452cbd7342d4a36971719b194897d692073b3c06af&url=","")
@@ -196,8 +200,8 @@ for link in links:
     try:
         pagination = int(soup.select_one('a[aria-label="Last Page"]').text)
     except:
-        pagination = 2
-    import pdb;pdb.set_trace()
+        pagination = 1
+
     for page in range(1,pagination+1):
         print(current_url)
         print(f"pagination {page}")
@@ -231,7 +235,7 @@ for link in links:
                         convert_json('bad_link.json', link)
                     all_url.append(link)
                     convert_json('all_link.json', link)
-                    print(f"bad_url = {len(bad_link)} and livenation_concert  = {len(livenation_link)} and ticketmaster = {len(ticketmaster_link)} and all_website_link.json ={len(all_url)}")
+                    print(f"bad_url = {len(set(bad_link))} and livenation_concert  = {len(set(livenation_link))} and ticketmaster = {len(set(ticketmaster_link))} and all_website_link.json = {len(set(all_url))} current_url = {current_page}")
 
 
 
