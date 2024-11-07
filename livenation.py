@@ -3,6 +3,7 @@ import urllib.parse
 import json
 import time
 import pandas as pd
+import os
 
 from bs4 import BeautifulSoup
 from datetime import datetime
@@ -191,20 +192,21 @@ def request(livenation_url):
 soup = request("https://www.livenation.com/artist-sitemap")
 soup = soup["soup"]
 links = soup.select('div.css-p1b7dg > a')
-for link in links:
-    current_page = link["href"]
-    print(link["href"])
-    soup = request("https://www.livenation.com" + link["href"])
+for web_link in links:
+    current_page = web_link["href"]
+    current_charecter = web_link['href'].replace('/artist-sitemap/','').upper()
+    soup = request("https://www.livenation.com" + web_link["href"])
     current_url = soup["url"].replace("http://api.scrape.do?token=4452cbd7342d4a36971719b194897d692073b3c06af&url=","")
     soup = soup["soup"]
+
     try:
         pagination = int(soup.select_one('a[aria-label="Last Page"]').text)
     except:
         pagination = 1
 
     for page in range(1,pagination+1):
-        print(current_url)
-        print(f"pagination {page}")
+
+        
         if page == 1:
             soup = request(current_url)
         if page > 1 :
@@ -212,15 +214,15 @@ for link in links:
        
         soup = soup["soup"]   
         artist_link = soup.select('.chakra-link.css-1okgivo')
-        print(len(artist_link))
+  
     
-        for link in artist_link:
-            soup = request('https://www.livenation.com' + link["href"])
+        for no in range(0,len(artist_link)):
+            soup = request('https://www.livenation.com' + artist_link[no]["href"])
             soup = soup["soup"]
             target_link = soup.select('ul.css-p47pw5 a.chakra-linkbox__overlay.css-1q2nroc')
             
             if target_link:
-                print(len(target_link))
+                f"current_pagination: {page} and total pagination:{pagination}"
                 for link in target_link:
                     link = link["href"]
                     
@@ -235,7 +237,14 @@ for link in links:
                         convert_json('bad_link.json', link)
                     all_url.append(link)
                     convert_json('all_link.json', link)
-                    print(f"bad_url = {len(set(bad_link))} and livenation_concert  = {len(set(livenation_link))} and ticketmaster = {len(set(ticketmaster_link))} and all_website_link.json = {len(set(all_url))} current_url = {current_page}")
+                    
+                    os.system('cls')
+                    print(f"current_pagination: {page} and total pagination:{pagination}")
+                    print(f"current_pagination : {page} and total_link : {len(artist_link)} and current_link : {no} ")                  
+                    print(f"current_url = {link}")
+                    print('characters A to Z')
+                    print(f'current : {current_charecter}')
+                    print(f"bad_url = {len(set(bad_link))} and livenation_concert  = {len(set(livenation_link))} and ticketmaster = {len(set(ticketmaster_link))} and total_website_link.json = {len(set(all_url))}")
 
 
 
