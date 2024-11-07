@@ -239,12 +239,10 @@ for web_link in links:
                     convert_json('all_link.json', link)
                     
                     os.system('cls')
-                    print(f"current_pagination: {page} and total pagination:{pagination}")
-                    print(f"current_pagination : {page} and total_link : {len(artist_link)} and current_link : {no} ")                  
+                    print(f"current_pagination: {page}/{pagination}")           
                     print(f"current_url = {link}")
-                    print('characters A to Z')
-                    print(f'current : {current_charecter}')
-                    print(f"bad_url = {len(set(bad_link))} and livenation_concert  = {len(set(livenation_link))} and ticketmaster = {len(set(ticketmaster_link))} and total_website_link.json = {len(set(all_url))}")
+                    print(f'Current Letter: {current_charecter}')
+                    print(f"bad_url = {len(set(bad_link))} and livenation_concert  = {len(set(livenation_link))} and ticketmaster = {len(set(ticketmaster_link))} and total_process = {len(set(all_url))}")
 
 
 
